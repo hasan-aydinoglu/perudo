@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Alert } from 'react-native';
+import { Picker } from '@react-native-picker/picker';
 import AnimatedDiceRoll from '../components/AnimatedDiceRoll';
 
 const players = [
@@ -20,8 +21,11 @@ function countDice(results) {
 }
 
 export default function GameScreen() {
-  const [diceData, setDiceData] = useState({}); // { playerId: { rollResults:[], counted:{} } }
+  const [diceData, setDiceData] = useState({});
   const [currentPlayerId, setCurrentPlayerId] = useState(players[0].id);
+  const [currentBid, setCurrentBid] = useState(null);
+  const [bidQuantity, setBidQuantity] = useState(1);
+  const [bidFace, setBidFace] = useState(1);
 
   const handleRollComplete = (rollResults) => {
     const counted = countDice(rollResults);
@@ -29,7 +33,11 @@ export default function GameScreen() {
       ...prev,
       [currentPlayerId]: { rollResults, counted },
     }));
-    Alert.alert('Dice Rolled', `You rolled: ${rollResults.join(', ')}`);
+  };
+
+  const placeBid = () => {
+    setCurrentBid({ quantity: bidQuantity, face: bidFace, player: players.find(p => p.id === currentPlayerId).name });
+    nextPlayer();
   };
 
   const nextPlayer = () => {
@@ -38,141 +46,82 @@ export default function GameScreen() {
     setCurrentPlayerId(players[nextIndex].id);
   };
 
+  const callLiar = () => {
+    let totalCount = 0;
+    Object.values(diceData).forEach(data => {
+      if (data) totalCount += data.rollResults.filter(num => num === currentBid.face).length;
+    });
+
+    if (totalCount >= currentBid.quantity) {
+      Alert.alert("Result", `${currentBid.player}'s bid was correct! Liar loses.`);
+    } else {
+      Alert.alert("Result", `${currentBid.player}'s bid was false! ${currentBid.player} loses.`);
+    }
+
+    // reset game state
+    setCurrentBid(null);
+    setDiceData({});
+    setCurrentPlayerId(players[0].id);
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.table}>
-        <Text style={styles.tableText}>Perudo Game Table</Text>
-      </View>
+      <Text style={styles.title}>Perudo Table</Text>
 
-      {players.map((player, index) => {
-        const isCurrent = player.id === currentPlayerId;
-        const diceInfo = diceData[player.id];
+      <AnimatedDiceRoll
+        disabled={!currentPlayerId}
+        onRollComplete={handleRollComplete}
+      />
 
-        return (
-          <View key={player.id} style={[styles.playerContainer, playerPositions[index]]}>
-            <Image source={{ uri: player.avatar }} style={styles.avatar} />
-            <Text style={[styles.playerName, isCurrent && styles.currentPlayer]}>
-              {player.name} {isCurrent ? '(Your Turn)' : ''}
-            </Text>
+      {currentBid && (
+        <Text style={styles.bidText}>
+          Current Bid: {currentBid.quantity} x {currentBid.face} (by {currentBid.player})
+        </Text>
+      )}
 
-            {diceInfo && (
-              <View style={styles.diceResults}>
-                {isCurrent ? (
-                  <>
-                    <Text style={styles.diceText}>Rolls: {diceInfo.rollResults.join(', ')}</Text>
-                    <Text style={styles.diceText}>
-                      Counts: {Object.entries(diceInfo.counted)
-                        .filter(([num, count]) => count > 0)
-                        .map(([num, count]) => `${num} x${count}`)
-                        .join(', ')}
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.diceText}>
-                    Counts: {Object.entries(diceInfo.counted)
-                      .filter(([num, count]) => count > 0)
-                      .map(([num, count]) => `${num} x${count}`)
-                      .join(', ')}
-                  </Text>
-                )}
-              </View>
-            )}
-          </View>
-        );
-      })}
+      {currentPlayerId === players[0].id && (
+        <View style={styles.bidArea}>
+          <Text style={styles.label}>Quantity:</Text>
+          <Picker
+            selectedValue={bidQuantity}
+            style={styles.picker}
+            onValueChange={(itemValue) => setBidQuantity(itemValue)}>
+            {[1,2,3,4,5,6,7,8].map(num => (
+              <Picker.Item key={num} label={num.toString()} value={num} />
+            ))}
+          </Picker>
 
-      <View style={styles.diceRoller}>
-        <AnimatedDiceRoll
-          disabled={currentPlayerId !== players[0].id}
-          onRollComplete={handleRollComplete}
-        />
-      </View>
+          <Text style={styles.label}>Face:</Text>
+          <Picker
+            selectedValue={bidFace}
+            style={styles.picker}
+            onValueChange={(itemValue) => setBidFace(itemValue)}>
+            {[1,2,3,4,5,6].map(num => (
+              <Picker.Item key={num} label={num.toString()} value={num} />
+            ))}
+          </Picker>
 
-      {currentPlayerId !== players[0].id && (
-        <TouchableOpacity style={styles.buttonNext} onPress={nextPlayer}>
-          <Text style={styles.buttonText}>Next Player</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={placeBid}>
+            <Text style={styles.buttonText}>Place Bid</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.liarButton} onPress={callLiar}>
+            <Text style={styles.buttonText}>Liar!</Text>
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
 }
 
-const playerPositions = [
-  { top: 20, left: '45%' },
-  { top: '40%', right: 20 },
-  { bottom: 80, right: 40 },
-  { bottom: 80, left: 40 },
-  { top: '40%', left: 20 },
-];
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  table: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: '#8b6f2f',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    zIndex: 0,
-  },
-  tableText: {
-    color: '#f0e6c8',
-    fontWeight: 'bold',
-    fontSize: 22,
-  },
-  playerContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 1,
-    maxWidth: 120,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#f0e6c8',
-    marginBottom: 6,
-  },
-  playerName: {
-    color: '#f0e6c8',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  currentPlayer: {
-    color: '#ffd700',
-    fontWeight: 'bold',
-  },
-  diceResults: {
-    marginTop: 6,
-    alignItems: 'center',
-  },
-  diceText: {
-    color: '#f0e6c8',
-    fontSize: 12,
-  },
-  diceRoller: {
-    position: 'absolute',
-    bottom: 100,
-  },
-  buttonNext: {
-    position: 'absolute',
-    bottom: 40,
-    backgroundColor: '#444',
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    borderRadius: 25,
-  },
-  buttonText: {
-    color: '#f0e6c8',
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: '#005f73', paddingTop: 50, alignItems: 'center' },
+  title: { fontSize: 26, color: '#ffdd99', marginBottom: 20, fontWeight: 'bold' },
+  bidText: { fontSize: 18, color: '#fff', marginVertical: 20 },
+  bidArea: { marginTop: 20, alignItems: 'center' },
+  label: { fontSize: 16, color: '#fff', marginTop: 10 },
+  picker: { width: 100, color: '#fff', backgroundColor: '#003845', marginVertical: 5 },
+  button: { backgroundColor: '#ffd166', padding: 10, borderRadius: 10, marginTop: 10 },
+  liarButton: { backgroundColor: '#ef476f', padding: 10, borderRadius: 10, marginTop: 10 },
+  buttonText: { color: '#003845', fontWeight: 'bold' },
 });

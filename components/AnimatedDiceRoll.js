@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Image, TouchableOpacity, StyleSheet, Text, Animated, Easing } from 'react-native';
 
 const diceFaces = [
@@ -16,48 +16,24 @@ export default function AnimatedDiceRoll({ onRollComplete }) {
   const intervalRef = useRef(null);
   const rollCountRef = useRef(0);
 
-  // Animasyon için dönüş açısı (radyan)
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
-  // Sallanma animasyonu fonksiyonu
   const startShakeAnimation = () => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(shakeAnim, {
-          toValue: 1,
-          duration: 100,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: -1,
-          duration: 100,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shakeAnim, {
-          toValue: 0,
-          duration: 100,
-          easing: Easing.linear,
-          useNativeDriver: true,
-        }),
+        Animated.timing(shakeAnim, { toValue: 1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -1, duration: 100, easing: Easing.linear, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 0, duration: 100, easing: Easing.linear, useNativeDriver: true }),
       ]),
-      {
-        iterations: -1,
-      }
+      { iterations: -1 }
     ).start();
   };
-
-  // Sallanmayı durdurmak için referans tutalım
-  const shakeAnimRef = useRef(null);
 
   const startRoll = () => {
     if (rolling) return;
 
     setRolling(true);
     rollCountRef.current = 0;
-
-    // Sallanmayı başlat
     startShakeAnimation();
 
     intervalRef.current = setInterval(() => {
@@ -73,8 +49,6 @@ export default function AnimatedDiceRoll({ onRollComplete }) {
       if (rollCountRef.current >= 20) {
         clearInterval(intervalRef.current);
         setRolling(false);
-
-        // Sallanmayı durdur
         shakeAnim.stopAnimation();
 
         const finalFaces = [
@@ -90,7 +64,6 @@ export default function AnimatedDiceRoll({ onRollComplete }) {
     }, 50);
   };
 
-  // Döndürme açısını dereceye çevirip animasyona bağla
   const rotate = shakeAnim.interpolate({
     inputRange: [-1, 1],
     outputRange: ['-10deg', '10deg'],
@@ -125,11 +98,9 @@ const styles = StyleSheet.create({
     marginTop: 20,
     marginBottom: 10,
   },
-  shaker: {
-    // buraya animasyon uygulanacak
-  },
+  shaker: {},
   glass: {
-    backgroundColor: '#5DADE2', // açık mavi bardak rengi
+    backgroundColor: '#5DADE2',
     borderRadius: 30,
     paddingVertical: 20,
     paddingHorizontal: 15,
