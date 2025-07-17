@@ -1,237 +1,159 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { Picker } from '@react-native-picker/picker';
-import AnimatedDiceRoll from '../components/AnimatedDiceRoll';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, TextInput } from 'react-native';
 
 const players = [
-  { id: 1, name: 'Alice', avatar: 'https://i.pravatar.cc/100?img=1' },
-  { id: 2, name: 'Bob', avatar: 'https://i.pravatar.cc/100?img=2' },
-  { id: 3, name: 'Charlie', avatar: 'https://i.pravatar.cc/100?img=3' },
-  { id: 4, name: 'Diana', avatar: 'https://i.pravatar.cc/100?img=4' },
-  { id: 5, name: 'Eve', avatar: 'https://i.pravatar.cc/100?img=5' },
+  { id: 1, name: 'Alice', avatar: { uri: 'https://i.pravatar.cc/100?img=1' } },
+  { id: 2, name: 'Bob', avatar: { uri: 'https://i.pravatar.cc/100?img=2' } },
+  { id: 3, name: 'Eve', avatar: { uri: 'https://i.pravatar.cc/100?img=3' } },
 ];
 
-function countDice(results) {
-  const counts = {};
-  for (let i = 1; i <= 6; i++) counts[i] = 0;
-  results.forEach(num => {
-    counts[num]++;
-  });
-  return counts;
-}
-
 export default function GameScreen() {
-  const [diceData, setDiceData] = useState({});
-  const [currentPlayerId, setCurrentPlayerId] = useState(players[0].id);
-  const [currentBid, setCurrentBid] = useState(null);
-  const [bidQuantity, setBidQuantity] = useState(1);
-  const [bidFace, setBidFace] = useState(1);
+  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+  const [chatVisible, setChatVisible] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
 
-  const handleRollComplete = rollResults => {
-    const counted = countDice(rollResults);
-    setDiceData(prev => ({
-      ...prev,
-      [currentPlayerId]: { rollResults, counted },
-    }));
-    Alert.alert('Dice Rolled', `You rolled: ${rollResults.join(', ')}`);
+  const handleNextPlayer = () => {
+    setCurrentPlayerIndex((prev) => (prev + 1) % players.length);
   };
 
-  const nextPlayer = () => {
-    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
-    const nextIndex = (currentIndex + 1) % players.length;
-    setCurrentPlayerId(players[nextIndex].id);
+  const handleSendMessage = () => {
+    if (newMessage.trim()) {
+      setMessages([...messages, { name: players[currentPlayerIndex].name, text: newMessage }]);
+      setNewMessage('');
+    }
   };
 
-  const placeBid = () => {
-    setCurrentBid({ quantity: bidQuantity, face: bidFace, playerId: currentPlayerId });
-    nextPlayer();
-  };
-
-  const callLiar = () => {
-    Alert.alert('Liar Called!', 'Checking the bid...');
-  };
+  const currentPlayer = players[currentPlayerIndex];
 
   return (
     <View style={styles.container}>
-      <View style={styles.table}>
-        <Text style={styles.tableText}>Perudo Game Table</Text>
-      </View>
-
-      {players.map((player, index) => {
-        const isCurrent = player.id === currentPlayerId;
-        const diceInfo = diceData[player.id];
-
-        return (
-          <View key={player.id} style={[styles.playerContainer, playerPositions[index]]}>
-            <Image source={{ uri: player.avatar }} style={styles.avatar} />
-            <Text style={[styles.playerName, isCurrent && styles.currentPlayer]}>
-              {player.name} {isCurrent ? '(Your Turn)' : ''}
-            </Text>
-
-            {isCurrent && diceInfo && (
-              <View style={styles.diceResults}>
-                <Text style={styles.diceText}>Rolls: {diceInfo.rollResults.join(', ')}</Text>
-                <Text style={styles.diceText}>
-                  Counts: {Object.entries(diceInfo.counted)
-                    .filter(([_, count]) => count > 0)
-                    .map(([num, count]) => `${num} x${count}`)}
-                </Text>
-              </View>
-            )}
-          </View>
-        );
-      })}
-
-      <View style={styles.diceRoller}>
-        <AnimatedDiceRoll
-          disabled={currentPlayerId !== players[0].id}
-          onRollComplete={handleRollComplete}
-        />
-      </View>
-
-      {currentPlayerId === players[0].id && (
-        <View style={styles.bidArea}>
-          <Text style={styles.bidText}>Place Your Bid</Text>
-          <Picker
-            selectedValue={bidQuantity}
-            style={styles.picker}
-            onValueChange={(itemValue) => setBidQuantity(itemValue)}>
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-              <Picker.Item key={num} label={num.toString()} value={num} />
-            ))}
-          </Picker>
-
-          <Picker
-            selectedValue={bidFace}
-            style={styles.picker}
-            onValueChange={(itemValue) => setBidFace(itemValue)}>
-            {[1, 2, 3, 4, 5, 6].map(num => (
-              <Picker.Item key={num} label={num.toString()} value={num} />
-            ))}
-          </Picker>
-
-          <TouchableOpacity style={styles.placeBidButton} onPress={placeBid}>
-            <Text style={styles.buttonText}>Place Bid</Text>
+      {!chatVisible ? (
+        <>
+          <Text style={styles.title}>It's {currentPlayer.name}'s Turn</Text>
+          <Image source={currentPlayer.avatar} style={styles.avatar} />
+          <TouchableOpacity style={styles.button} onPress={handleNextPlayer}>
+            <Text style={styles.buttonText}>Next Player</Text>
           </TouchableOpacity>
-        </View>
-      )}
 
-      {currentBid && currentPlayerId !== currentBid.playerId && (
-        <TouchableOpacity style={styles.liarButton} onPress={callLiar}>
-          <Text style={styles.buttonText}>Liar!</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.chatButton} onPress={() => setChatVisible(true)}>
+            <Text style={styles.chatButtonText}>💬 Chat</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <Text style={styles.chatTitle}>Game Chat</Text>
+          <FlatList
+            data={messages}
+            keyExtractor={(_, index) => index.toString()}
+            renderItem={({ item }) => (
+              <Text style={styles.message}>
+                <Text style={{ fontWeight: 'bold' }}>{item.name}:</Text> {item.text}
+              </Text>
+            )}
+            style={styles.chatBox}
+          />
+          <View style={styles.inputRow}>
+            <TextInput
+              value={newMessage}
+              onChangeText={setNewMessage}
+              placeholder="Type a message..."
+              style={styles.input}
+            />
+            <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
+              <Text style={{ color: '#fff' }}>Send</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.backButton} onPress={() => setChatVisible(false)}>
+            <Text style={styles.backButtonText}>⬅ Back to Game</Text>
+          </TouchableOpacity>
+        </>
       )}
     </View>
   );
 }
 
-const playerPositions = [
-  { top: 20, left: '45%' },
-  { top: '40%', right: 20 },
-  { bottom: 80, right: 40 },
-  { bottom: 80, left: 40 },
-  { top: '40%', left: 20 },
-];
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1c2b3a',
+    backgroundColor: '#222831',
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
   },
-  table: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: '#145374',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    zIndex: 0,
-  },
-  tableText: {
-    color: '#e0f7fa',
-    fontWeight: 'bold',
-    fontSize: 22,
-  },
-  playerContainer: {
-    position: 'absolute',
-    alignItems: 'center',
-    zIndex: 1,
-    maxWidth: 120,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    borderWidth: 2,
-    borderColor: '#fff',
-    marginBottom: 6,
-  },
-  playerName: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  currentPlayer: {
-    color: '#ffd700',
-    fontWeight: 'bold',
-  },
-  diceResults: {
-    marginTop: 6,
-    alignItems: 'center',
-  },
-  diceText: {
-    color: '#e0f7fa',
-    fontSize: 12,
-  },
-  diceRoller: {
-    position: 'absolute',
-    top: 50,
-  },
-  bidArea: {
-    position: 'absolute',
-    bottom: 120,
-    alignItems: 'center',
-  },
-  bidText: {
-    color: '#fff',
-    fontSize: 16,
+  title: {
+    fontSize: 24,
+    color: '#EEEEEE',
     marginBottom: 10,
   },
-  picker: {
-    height: 40,
-    width: 150,
-    color: '#fff',
-    backgroundColor: '#2c3e50',
-    marginVertical: 5,
+  avatar: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginBottom: 20,
   },
-  placeBidButton: {
-    backgroundColor: '#27ae60',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginTop: 10,
-  },
-  liarButton: {
-    position: 'absolute',
-    bottom: 40,
-    backgroundColor: '#c0392b',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+  button: {
+    backgroundColor: '#00ADB5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
     fontSize: 16,
+  },
+  chatButton: {
+    position: 'absolute',
+    bottom: 40,
+    right: 20,
+    backgroundColor: '#393E46',
+    padding: 10,
+    borderRadius: 30,
+  },
+  chatButtonText: {
+    color: '#fff',
+    fontSize: 18,
+  },
+  chatTitle: {
+    fontSize: 22,
+    color: '#EEEEEE',
+    marginBottom: 10,
+  },
+  chatBox: {
+    width: '100%',
+    maxHeight: '50%',
+    backgroundColor: '#393E46',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 10,
+  },
+  message: {
+    color: '#EEEEEE',
+    marginBottom: 5,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: 10,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: '#EEEEEE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginRight: 10,
+  },
+  sendButton: {
+    backgroundColor: '#00ADB5',
+    paddingHorizontal: 15,
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  backButton: {
+    marginTop: 10,
+  },
+  backButtonText: {
+    color: '#EEEEEE',
+    textDecorationLine: 'underline',
   },
 });
