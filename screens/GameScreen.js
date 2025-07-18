@@ -1,159 +1,219 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, TextInput } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+  StyleSheet,
+  FlatList,
+} from 'react-native';
+
+const diceImages = {
+  1: require('../assets/dice1.png'),
+  2: require('../assets/dice2.png'),
+  3: require('../assets/dice3.png'),
+  4: require('../assets/dice4.png'),
+  5: require('../assets/dice5.png'),
+  6: require('../assets/dice6.png'),
+};
 
 const players = [
-  { id: 1, name: 'Alice', avatar: { uri: 'https://i.pravatar.cc/100?img=1' } },
-  { id: 2, name: 'Bob', avatar: { uri: 'https://i.pravatar.cc/100?img=2' } },
-  { id: 3, name: 'Eve', avatar: { uri: 'https://i.pravatar.cc/100?img=3' } },
+  { id: 1, name: 'Alice', avatar: require('../assets/avatar1.png') },
+  { id: 2, name: 'Bob', avatar: require('../assets/avatar2.png') },
+  { id: 3, name: 'Eve', avatar: require('../assets/avatar3.png') },
 ];
 
 export default function GameScreen() {
-  const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
-  const [chatVisible, setChatVisible] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
+  const [diceValues, setDiceValues] = useState(generateDice());
+  const [bidModalVisible, setBidModalVisible] = useState(false);
+  const [bidQuantity, setBidQuantity] = useState('');
+  const [bidFace, setBidFace] = useState('');
 
-  const handleNextPlayer = () => {
-    setCurrentPlayerIndex((prev) => (prev + 1) % players.length);
-  };
+  function generateDice() {
+    return Array.from({ length: 5 }, () => Math.floor(Math.random() * 6) + 1);
+  }
 
-  const handleSendMessage = () => {
-    if (newMessage.trim()) {
-      setMessages([...messages, { name: players[currentPlayerIndex].name, text: newMessage }]);
-      setNewMessage('');
-    }
-  };
+  function rollDice() {
+    setDiceValues(generateDice());
+  }
 
-  const currentPlayer = players[currentPlayerIndex];
+  function submitBid() {
+    console.log(`Bid: ${bidQuantity} x Face ${bidFace}`);
+    setBidModalVisible(false);
+  }
 
   return (
     <View style={styles.container}>
-      {!chatVisible ? (
-        <>
-          <Text style={styles.title}>It's {currentPlayer.name}'s Turn</Text>
-          <Image source={currentPlayer.avatar} style={styles.avatar} />
-          <TouchableOpacity style={styles.button} onPress={handleNextPlayer}>
-            <Text style={styles.buttonText}>Next Player</Text>
-          </TouchableOpacity>
+      <Text style={styles.title}>Perudo Game</Text>
 
-          <TouchableOpacity style={styles.chatButton} onPress={() => setChatVisible(true)}>
-            <Text style={styles.chatButtonText}>💬 Chat</Text>
-          </TouchableOpacity>
-        </>
-      ) : (
-        <>
-          <Text style={styles.chatTitle}>Game Chat</Text>
-          <FlatList
-            data={messages}
-            keyExtractor={(_, index) => index.toString()}
-            renderItem={({ item }) => (
-              <Text style={styles.message}>
-                <Text style={{ fontWeight: 'bold' }}>{item.name}:</Text> {item.text}
-              </Text>
-            )}
-            style={styles.chatBox}
-          />
-          <View style={styles.inputRow}>
+      <View style={styles.table}>
+        {players.map((player, index) => (
+          <View key={player.id} style={[styles.playerContainer, getPlayerPosition(index)]}>
+            <Image source={player.avatar} style={styles.avatar} />
+            <Text style={styles.playerName}>{player.name}</Text>
+          </View>
+        ))}
+      </View>
+
+      <View style={styles.diceRow}>
+        {diceValues.map((d, i) => (
+          <Image key={i} source={diceImages[d]} style={styles.dice} />
+        ))}
+      </View>
+
+      <View style={styles.buttons}>
+        <TouchableOpacity style={styles.bidButton} onPress={() => setBidModalVisible(true)}>
+          <Text style={styles.buttonText}>Bid</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.liarButton} onPress={() => alert('Liar called!')}>
+          <Text style={styles.buttonText}>Liar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.rollButton} onPress={rollDice}>
+          <Text style={styles.buttonText}>Roll Dice</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Modal visible={bidModalVisible} transparent animationType="slide">
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Place your Bid</Text>
             <TextInput
-              value={newMessage}
-              onChangeText={setNewMessage}
-              placeholder="Type a message..."
+              placeholder="Quantity"
+              keyboardType="numeric"
+              value={bidQuantity}
+              onChangeText={setBidQuantity}
               style={styles.input}
             />
-            <TouchableOpacity onPress={handleSendMessage} style={styles.sendButton}>
-              <Text style={{ color: '#fff' }}>Send</Text>
+            <TextInput
+              placeholder="Face (1-6)"
+              keyboardType="numeric"
+              value={bidFace}
+              onChangeText={setBidFace}
+              style={styles.input}
+            />
+            <TouchableOpacity style={styles.modalButton} onPress={submitBid}>
+              <Text style={styles.buttonText}>Submit Bid</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.backButton} onPress={() => setChatVisible(false)}>
-            <Text style={styles.backButtonText}>⬅ Back to Game</Text>
-          </TouchableOpacity>
-        </>
-      )}
+        </View>
+      </Modal>
     </View>
   );
+}
+
+function getPlayerPosition(index) {
+  const positions = [
+    { top: 10, left: '40%' },
+    { top: '40%', right: 10 },
+    { bottom: 10, left: '40%' },
+  ];
+  return positions[index % positions.length];
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#222831',
+    backgroundColor: '#0f0f0f',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    justifyContent: 'space-between',
+    paddingVertical: 30,
   },
   title: {
-    fontSize: 24,
-    color: '#EEEEEE',
-    marginBottom: 10,
+    fontSize: 28,
+    color: '#fff',
+    fontWeight: 'bold',
+    marginTop: 20,
+  },
+  table: {
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    borderWidth: 3,
+    borderColor: '#4caf50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  playerContainer: {
+    position: 'absolute',
+    alignItems: 'center',
   },
   avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginBottom: 5,
   },
-  button: {
-    backgroundColor: '#00ADB5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
+  playerName: {
+    color: '#fff',
+    fontSize: 14,
+  },
+  diceRow: {
+    flexDirection: 'row',
+    marginTop: 10,
+  },
+  dice: {
+    width: 40,
+    height: 40,
+    marginHorizontal: 5,
+  },
+  buttons: {
+    flexDirection: 'row',
+    marginBottom: 30,
+  },
+  bidButton: {
+    backgroundColor: '#007bff',
+    padding: 10,
+    marginHorizontal: 5,
+    borderRadius: 10,
+  },
+  liarButton: {
+    backgroundColor: '#dc3545',
+    padding: 10,
+    marginHorizontal: 5,
+    borderRadius: 10,
+  },
+  rollButton: {
+    backgroundColor: '#28a745',
+    padding: 10,
+    marginHorizontal: 5,
+    borderRadius: 10,
   },
   buttonText: {
     color: '#fff',
-    fontSize: 16,
+    fontWeight: 'bold',
   },
-  chatButton: {
-    position: 'absolute',
-    bottom: 40,
-    right: 20,
-    backgroundColor: '#393E46',
-    padding: 10,
-    borderRadius: 30,
+  modalBackground: {
+    flex: 1,
+    backgroundColor: '#000000aa',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  chatButtonText: {
-    color: '#fff',
-    fontSize: 18,
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 30,
+    borderRadius: 20,
+    width: '80%',
   },
-  chatTitle: {
-    fontSize: 22,
-    color: '#EEEEEE',
-    marginBottom: 10,
-  },
-  chatBox: {
-    width: '100%',
-    maxHeight: '50%',
-    backgroundColor: '#393E46',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
-  },
-  message: {
-    color: '#EEEEEE',
-    marginBottom: 5,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    width: '100%',
-    marginBottom: 10,
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
   },
   input: {
-    flex: 1,
-    backgroundColor: '#EEEEEE',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    marginRight: 10,
+    borderBottomWidth: 1,
+    borderColor: '#aaa',
+    marginBottom: 15,
+    fontSize: 16,
+    padding: 8,
   },
-  sendButton: {
-    backgroundColor: '#00ADB5',
-    paddingHorizontal: 15,
-    justifyContent: 'center',
-    borderRadius: 8,
-  },
-  backButton: {
-    marginTop: 10,
-  },
-  backButtonText: {
-    color: '#EEEEEE',
-    textDecorationLine: 'underline',
+  modalButton: {
+    backgroundColor: '#007bff',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
   },
 });
