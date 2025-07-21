@@ -2,22 +2,14 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   Image,
   TouchableOpacity,
+  Alert,
   Modal,
   TextInput,
-  StyleSheet,
-  FlatList,
+  ImageBackground,
 } from 'react-native';
-
-const diceImages = {
-  1: require('../assets/dice1.png'),
-  2: require('../assets/dice2.png'),
-  3: require('../assets/dice3.png'),
-  4: require('../assets/dice4.png'),
-  5: require('../assets/dice5.png'),
-  6: require('../assets/dice6.png'),
-};
 
 const players = [
   { id: 1, name: 'Alice', avatar: require('../assets/avatar1.png') },
@@ -25,60 +17,134 @@ const players = [
   { id: 3, name: 'Eve', avatar: require('../assets/avatar3.png') },
 ];
 
+function rollFiveDice() {
+  const results = [];
+  for (let i = 0; i < 5; i++) {
+    results.push(Math.floor(Math.random() * 6) + 1);
+  }
+  return results;
+}
+
+function countDice(results) {
+  const counts = {};
+  for (let i = 1; i <= 6; i++) counts[i] = 0;
+  results.forEach(num => {
+    counts[num]++;
+  });
+  return counts;
+}
+
+function checkBidValidity(bid, allDice) {
+  let total = 0;
+  Object.values(allDice).forEach(arr => {
+    arr.forEach(d => {
+      if (d === bid.face) total++;
+    });
+  });
+  return total >= bid.quantity;
+}
+
 export default function GameScreen() {
-  const [diceValues, setDiceValues] = useState(generateDice());
-  const [bidModalVisible, setBidModalVisible] = useState(false);
+  const [diceData, setDiceData] = useState({});
+  const [currentPlayerId, setCurrentPlayerId] = useState(players[0].id);
+  const [currentBid, setCurrentBid] = useState(null);
+  const [showBidModal, setShowBidModal] = useState(false);
   const [bidQuantity, setBidQuantity] = useState('');
   const [bidFace, setBidFace] = useState('');
+  const [showChat, setShowChat] = useState(false);
 
-  function generateDice() {
-    return Array.from({ length: 5 }, () => Math.floor(Math.random() * 6) + 1);
-  }
+  const rollDice = () => {
+    const result = rollFiveDice();
+    setDiceData(prev => ({
+      ...prev,
+      [currentPlayerId]: result,
+    }));
+    Alert.alert('Dice Rolled', `You rolled: ${result.join(', ')}`);
+  };
 
-  function rollDice() {
-    setDiceValues(generateDice());
-  }
+  const nextPlayer = () => {
+    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
+    const nextIndex = (currentIndex + 1) % players.length;
+    setCurrentPlayerId(players[nextIndex].id);
+  };
 
-  function submitBid() {
-    console.log(`Bid: ${bidQuantity} x Face ${bidFace}`);
-    setBidModalVisible(false);
-  }
+  const submitBid = () => {
+    if (!bidQuantity || !bidFace) return;
+    setCurrentBid({
+      quantity: parseInt(bidQuantity),
+      face: parseInt(bidFace),
+      playerId: currentPlayerId,
+    });
+    setShowBidModal(false);
+    nextPlayer();
+  };
+
+  const callLiar = () => {
+    if (!currentBid) return;
+    const isValid = checkBidValidity(currentBid, diceData);
+    const bidder = players.find(p => p.id === currentBid.playerId);
+    const caller = players.find(p => p.id === currentPlayerId);
+
+    Alert.alert(
+      'Liar Called!',
+      isValid
+        ? `${caller.name} was wrong! ${bidder.name}'s bid is valid.`
+        : `${caller.name} was right! ${bidder.name}'s bid was a lie.`
+    );
+
+    // Yeni tur başlat
+    setCurrentBid(null);
+    setDiceData({});
+    setCurrentPlayerId(players[0].id);
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Perudo Game</Text>
+    <ImageBackground
+      source={require('../assets/background.jpg')}
+      style={styles.background}
+    >
+      <TouchableOpacity style={styles.chatButton} onPress={() => setShowChat(!showChat)}>
+        <Text style={styles.chatButtonText}>💬</Text>
+      </TouchableOpacity>
 
       <View style={styles.table}>
-        {players.map((player, index) => (
-          <View key={player.id} style={[styles.playerContainer, getPlayerPosition(index)]}>
+        {currentBid && (
+          <Text style={styles.currentBid}>
+            {players.find(p => p.id === currentBid.playerId).name} bids {currentBid.quantity} × {currentBid.face}
+          </Text>
+        )}
+      </View>
+
+      <View style={styles.playerRow}>
+        {players.map(player => (
+          <View key={player.id} style={styles.playerBox}>
             <Image source={player.avatar} style={styles.avatar} />
-            <Text style={styles.playerName}>{player.name}</Text>
+            <Text style={[
+              styles.playerName,
+              currentPlayerId === player.id && styles.currentTurn
+            ]}>
+              {player.name}
+            </Text>
           </View>
         ))}
       </View>
 
-      <View style={styles.diceRow}>
-        {diceValues.map((d, i) => (
-          <Image key={i} source={diceImages[d]} style={styles.dice} />
-        ))}
-      </View>
-
-      <View style={styles.buttons}>
-        <TouchableOpacity style={styles.bidButton} onPress={() => setBidModalVisible(true)}>
-          <Text style={styles.buttonText}>Bid</Text>
+      <View style={styles.controls}>
+        <TouchableOpacity style={styles.button} onPress={rollDice}>
+          <Text style={styles.buttonText}>🎲 Roll Dice</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.liarButton} onPress={() => alert('Liar called!')}>
-          <Text style={styles.buttonText}>Liar</Text>
+        <TouchableOpacity style={styles.button} onPress={() => setShowBidModal(true)}>
+          <Text style={styles.buttonText}>📣 Bid</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.rollButton} onPress={rollDice}>
-          <Text style={styles.buttonText}>Roll Dice</Text>
+        <TouchableOpacity style={styles.button} onPress={callLiar}>
+          <Text style={styles.buttonText}>❗ Liar</Text>
         </TouchableOpacity>
       </View>
 
-      <Modal visible={bidModalVisible} transparent animationType="slide">
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Place your Bid</Text>
+      <Modal visible={showBidModal} transparent>
+        <View style={styles.modal}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Place Your Bid</Text>
             <TextInput
               placeholder="Quantity"
               keyboardType="numeric"
@@ -87,133 +153,121 @@ export default function GameScreen() {
               style={styles.input}
             />
             <TextInput
-              placeholder="Face (1-6)"
+              placeholder="Dice Face (1-6)"
               keyboardType="numeric"
               value={bidFace}
               onChangeText={setBidFace}
               style={styles.input}
             />
-            <TouchableOpacity style={styles.modalButton} onPress={submitBid}>
-              <Text style={styles.buttonText}>Submit Bid</Text>
+            <TouchableOpacity onPress={submitBid} style={styles.modalButton}>
+              <Text style={styles.modalButtonText}>Submit</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </ImageBackground>
   );
 }
 
-function getPlayerPosition(index) {
-  const positions = [
-    { top: 10, left: '40%' },
-    { top: '40%', right: 10 },
-    { bottom: 10, left: '40%' },
-  ];
-  return positions[index % positions.length];
-}
-
 const styles = StyleSheet.create({
-  container: {
+  background: {
     flex: 1,
-    backgroundColor: '#0f0f0f',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 30,
+    resizeMode: 'cover',
   },
-  title: {
-    fontSize: 28,
-    color: '#fff',
-    fontWeight: 'bold',
-    marginTop: 20,
+  chatButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    backgroundColor: '#ffffffaa',
+    padding: 10,
+    borderRadius: 20,
+    zIndex: 10,
+  },
+  chatButtonText: {
+    fontSize: 18,
   },
   table: {
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    borderWidth: 3,
-    borderColor: '#4caf50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    marginTop: 100,
+    backgroundColor: '#ffffffcc',
+    padding: 20,
+    borderRadius: 20,
+    alignSelf: 'center',
   },
-  playerContainer: {
-    position: 'absolute',
+  currentBid: {
+    fontSize: 18,
+    color: '#222',
+    fontWeight: 'bold',
+  },
+  playerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 60,
+  },
+  playerBox: {
     alignItems: 'center',
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    marginBottom: 5,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginBottom: 4,
   },
   playerName: {
-    color: '#fff',
-    fontSize: 14,
+    color: '#333',
   },
-  diceRow: {
+  currentTurn: {
+    color: '#0077cc',
+    fontWeight: 'bold',
+  },
+  controls: {
+    position: 'absolute',
+    bottom: 80,
+    width: '100%',
     flexDirection: 'row',
-    marginTop: 10,
+    justifyContent: 'space-around',
   },
-  dice: {
-    width: 40,
-    height: 40,
-    marginHorizontal: 5,
-  },
-  buttons: {
-    flexDirection: 'row',
-    marginBottom: 30,
-  },
-  bidButton: {
-    backgroundColor: '#007bff',
-    padding: 10,
-    marginHorizontal: 5,
-    borderRadius: 10,
-  },
-  liarButton: {
-    backgroundColor: '#dc3545',
-    padding: 10,
-    marginHorizontal: 5,
-    borderRadius: 10,
-  },
-  rollButton: {
-    backgroundColor: '#28a745',
-    padding: 10,
-    marginHorizontal: 5,
+  button: {
+    backgroundColor: '#3399ff',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 10,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
   },
-  modalBackground: {
+  modal: {
     flex: 1,
-    backgroundColor: '#000000aa',
+    backgroundColor: '#00000088',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalContent: {
+  modalBox: {
     backgroundColor: '#fff',
-    padding: 30,
-    borderRadius: 20,
-    width: '80%',
+    padding: 20,
+    borderRadius: 16,
+    width: 300,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 15,
-    textAlign: 'center',
+    marginBottom: 12,
   },
   input: {
-    borderBottomWidth: 1,
-    borderColor: '#aaa',
-    marginBottom: 15,
-    fontSize: 16,
-    padding: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 12,
   },
   modalButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#3399ff',
     padding: 12,
     borderRadius: 10,
     alignItems: 'center',
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });
