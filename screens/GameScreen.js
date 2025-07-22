@@ -117,6 +117,9 @@ export default function GameScreen({ navigation }) {
         <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Game')}>
           <Text style={styles.navText}>🎮</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Settings')}>
+          <Text style={styles.navText}>⚙️</Text>
+        </TouchableOpacity>
       </View>
     </ImageBackground>
   );
