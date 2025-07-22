@@ -1,101 +1,68 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-  Modal,
-  TextInput,
-  ImageBackground,
-} from 'react-native';
+import { View, Text, StyleSheet, Image, ImageBackground, TouchableOpacity, Alert } from 'react-native';
+import ChatBox from '../components/ChatBox';
 
 const players = [
-  { id: 1, name: 'Alice', avatar: require('../assets/avatar1.png') },
-  { id: 2, name: 'Bob', avatar: require('../assets/avatar2.png') },
-  { id: 3, name: 'Eve', avatar: require('../assets/avatar3.png') },
+  { id: 1, name: 'Alice', avatar: 'https://i.pravatar.cc/100?img=1' },
+  { id: 2, name: 'Bob', avatar: 'https://i.pravatar.cc/100?img=2' },
+  { id: 3, name: 'Charlie', avatar: 'https://i.pravatar.cc/100?img=3' },
+  { id: 4, name: 'Diana', avatar: 'https://i.pravatar.cc/100?img=4' },
 ];
 
-function rollFiveDice() {
-  const results = [];
-  for (let i = 0; i < 5; i++) {
-    results.push(Math.floor(Math.random() * 6) + 1);
-  }
-  return results;
-}
+const rollDice = () => Array.from({ length: 5 }, () => Math.floor(Math.random() * 6) + 1);
 
-function countDice(results) {
-  const counts = {};
-  for (let i = 1; i <= 6; i++) counts[i] = 0;
-  results.forEach(num => {
-    counts[num]++;
-  });
-  return counts;
-}
-
-function checkBidValidity(bid, allDice) {
-  let total = 0;
-  Object.values(allDice).forEach(arr => {
-    arr.forEach(d => {
-      if (d === bid.face) total++;
-    });
-  });
-  return total >= bid.quantity;
-}
-
-export default function GameScreen() {
+export default function GameScreen({ navigation }) {
   const [diceData, setDiceData] = useState({});
   const [currentPlayerId, setCurrentPlayerId] = useState(players[0].id);
   const [currentBid, setCurrentBid] = useState(null);
-  const [showBidModal, setShowBidModal] = useState(false);
-  const [bidQuantity, setBidQuantity] = useState('');
-  const [bidFace, setBidFace] = useState('');
   const [showChat, setShowChat] = useState(false);
 
-  const rollDice = () => {
-    const result = rollFiveDice();
-    setDiceData(prev => ({
-      ...prev,
-      [currentPlayerId]: result,
-    }));
+  const rollDiceForCurrentPlayer = () => {
+    const result = rollDice();
+    setDiceData(prev => ({ ...prev, [currentPlayerId]: result }));
     Alert.alert('Dice Rolled', `You rolled: ${result.join(', ')}`);
   };
 
-  const nextPlayer = () => {
-    const currentIndex = players.findIndex(p => p.id === currentPlayerId);
-    const nextIndex = (currentIndex + 1) % players.length;
-    setCurrentPlayerId(players[nextIndex].id);
-  };
-
   const submitBid = () => {
-    if (!bidQuantity || !bidFace) return;
-    setCurrentBid({
-      quantity: parseInt(bidQuantity),
-      face: parseInt(bidFace),
-      playerId: currentPlayerId,
-    });
-    setShowBidModal(false);
+    const quantity = Math.floor(Math.random() * 5) + 1;
+    const face = Math.floor(Math.random() * 6) + 1;
+    setCurrentBid({ quantity, face, playerId: currentPlayerId });
     nextPlayer();
   };
 
   const callLiar = () => {
     if (!currentBid) return;
-    const isValid = checkBidValidity(currentBid, diceData);
+    const total = Object.values(diceData)
+      .flat()
+      .filter(d => d === currentBid.face).length;
     const bidder = players.find(p => p.id === currentBid.playerId);
     const caller = players.find(p => p.id === currentPlayerId);
 
     Alert.alert(
       'Liar Called!',
-      isValid
+      total >= currentBid.quantity
         ? `${caller.name} was wrong! ${bidder.name}'s bid is valid.`
         : `${caller.name} was right! ${bidder.name}'s bid was a lie.`
     );
+  };
 
-    // Yeni tur başlat
-    setCurrentBid(null);
-    setDiceData({});
-    setCurrentPlayerId(players[0].id);
+  const nextPlayer = () => {
+    const index = players.findIndex(p => p.id === currentPlayerId);
+    const nextIndex = (index + 1) % players.length;
+    setCurrentPlayerId(players[nextIndex].id);
+  };
+
+  const renderDice = (playerId) => {
+    const dice = diceData[playerId] || [];
+    return (
+      <View style={styles.diceRow}>
+        {dice.map((d, i) => (
+          <View key={i} style={styles.dice}>
+            <Text style={styles.diceText}>{d}</Text>
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
@@ -104,170 +71,157 @@ export default function GameScreen() {
       style={styles.background}
     >
       <TouchableOpacity style={styles.chatButton} onPress={() => setShowChat(!showChat)}>
-        <Text style={styles.chatButtonText}>💬</Text>
+        <Text style={styles.chatText}>💬</Text>
       </TouchableOpacity>
 
+      {showChat && <ChatBox />}
+
       <View style={styles.table}>
+        {players.map((player, i) => (
+          <View key={player.id} style={[styles.playerContainer, positions[i]]}>
+            <Image source={{ uri: player.avatar }} style={styles.avatar} />
+            <Text style={styles.name}>{player.name}</Text>
+            {currentPlayerId === player.id && renderDice(player.id)}
+          </View>
+        ))}
+
         {currentBid && (
-          <Text style={styles.currentBid}>
-            {players.find(p => p.id === currentBid.playerId).name} bids {currentBid.quantity} × {currentBid.face}
-          </Text>
+          <View style={styles.bidBox}>
+            <Text style={styles.bidText}>
+              Bid: {currentBid.quantity} of {currentBid.face}
+            </Text>
+          </View>
         )}
       </View>
 
-      <View style={styles.playerRow}>
-        {players.map(player => (
-          <View key={player.id} style={styles.playerBox}>
-            <Image source={player.avatar} style={styles.avatar} />
-            <Text style={[
-              styles.playerName,
-              currentPlayerId === player.id && styles.currentTurn
-            ]}>
-              {player.name}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={styles.controls}>
-        <TouchableOpacity style={styles.button} onPress={rollDice}>
-          <Text style={styles.buttonText}>🎲 Roll Dice</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={() => setShowBidModal(true)}>
-          <Text style={styles.buttonText}>📣 Bid</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={callLiar}>
-          <Text style={styles.buttonText}>❗ Liar</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Modal visible={showBidModal} transparent>
-        <View style={styles.modal}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Place Your Bid</Text>
-            <TextInput
-              placeholder="Quantity"
-              keyboardType="numeric"
-              value={bidQuantity}
-              onChangeText={setBidQuantity}
-              style={styles.input}
-            />
-            <TextInput
-              placeholder="Dice Face (1-6)"
-              keyboardType="numeric"
-              value={bidFace}
-              onChangeText={setBidFace}
-              style={styles.input}
-            />
-            <TouchableOpacity onPress={submitBid} style={styles.modalButton}>
-              <Text style={styles.modalButtonText}>Submit</Text>
+      <View style={styles.buttons}>
+        {currentPlayerId === players[0].id && (
+          <>
+            <TouchableOpacity onPress={rollDiceForCurrentPlayer} style={styles.button}>
+              <Text style={styles.buttonText}>Roll Dice</Text>
             </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+            <TouchableOpacity onPress={submitBid} style={styles.button}>
+              <Text style={styles.buttonText}>Submit Bid</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={callLiar} style={styles.button}>
+              <Text style={styles.buttonText}>Liar</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Profile')}>
+          <Text style={styles.navText}>👤</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Game')}>
+          <Text style={styles.navText}>🎮</Text>
+        </TouchableOpacity>
+      </View>
     </ImageBackground>
   );
 }
+
+const positions = [
+  { top: 10, left: '40%' },
+  { top: '40%', right: 10 },
+  { bottom: 50, right: 30 },
+  { top: '40%', left: 10 },
+];
 
 const styles = StyleSheet.create({
   background: {
     flex: 1,
     resizeMode: 'cover',
-  },
-  chatButton: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    backgroundColor: '#ffffffaa',
-    padding: 10,
-    borderRadius: 20,
-    zIndex: 10,
-  },
-  chatButtonText: {
-    fontSize: 18,
+    justifyContent: 'center',
   },
   table: {
-    marginTop: 100,
-    backgroundColor: '#ffffffcc',
-    padding: 20,
-    borderRadius: 20,
-    alignSelf: 'center',
+    width: '100%',
+    height: '70%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
-  currentBid: {
-    fontSize: 18,
-    color: '#222',
-    fontWeight: 'bold',
-  },
-  playerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 60,
-  },
-  playerBox: {
+  playerContainer: {
+    position: 'absolute',
     alignItems: 'center',
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginBottom: 4,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderColor: 'gold',
+    borderWidth: 2,
   },
-  playerName: {
-    color: '#333',
+  name: {
+    color: '#fff',
+    marginTop: 5,
   },
-  currentTurn: {
-    color: '#0077cc',
+  diceRow: {
+    flexDirection: 'row',
+    marginTop: 5,
+  },
+  dice: {
+    width: 30,
+    height: 30,
+    backgroundColor: '#fff',
+    margin: 3,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 5,
+  },
+  diceText: {
     fontWeight: 'bold',
   },
-  controls: {
+  bidBox: {
     position: 'absolute',
-    bottom: 80,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    padding: 10,
+    borderRadius: 10,
+  },
+  bidText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  buttons: {
+    alignItems: 'center',
+    marginTop: 20,
   },
   button: {
-    backgroundColor: '#3399ff',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 10,
+    backgroundColor: '#0a3d62',
+    padding: 10,
+    margin: 5,
+    borderRadius: 8,
   },
   buttonText: {
     color: '#fff',
     fontWeight: 'bold',
   },
-  modal: {
-    flex: 1,
-    backgroundColor: '#00000088',
-    justifyContent: 'center',
-    alignItems: 'center',
+  chatButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 999,
   },
-  modalBox: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
-    width: 300,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 12,
-  },
-  modalButton: {
-    backgroundColor: '#3399ff',
-    padding: 12,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalButtonText: {
+  chatText: {
+    fontSize: 24,
     color: '#fff',
-    fontWeight: 'bold',
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    paddingVertical: 10,
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+  },
+  navButton: {
+    padding: 10,
+  },
+  navText: {
+    fontSize: 20,
+    color: '#fff',
   },
 });
