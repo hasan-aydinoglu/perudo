@@ -1,156 +1,123 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  Image,
-} from 'react-native';
+// LoginScreen.js (Pirate-style Sign In with redirect to LobbyScreen)
+import React from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function LoginScreen({ navigation }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const handleLogin = () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
-      return;
-    }
-    // Burada login işlemini yapacağız
-    Alert.alert('Success', `Welcome ${email}!`);
-    navigation.replace('Home'); // Login başarılıysa Home sayfasına geç
-  };
-
-  const handleFacebookLogin = () => {
-    Alert.alert('Facebook Login', 'Facebook login not implemented yet.');
-  };
-
-  const handleGoogleLogin = () => {
-    Alert.alert('Google Login', 'Google login not implemented yet.');
+  const handleSignIn = () => {
+    navigation.navigate('Lobby');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back!</Text>
+    <ImageBackground
+      source={require('../assets/dice/loby.png')}
+      style={styles.background}
+    >
+      <View style={styles.containerWrapper}>
+        <View style={styles.container}>
+          <Text style={styles.title}>Sign In</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        placeholderTextColor="#aaa"
-        keyboardType="email-address"
-        autoCapitalize="none"
-        value={email}
-        onChangeText={setEmail}
-      />
+          <TextInput placeholder="Email" placeholderTextColor="#c4a87b" style={styles.input} />
+          <TextInput placeholder="Password" placeholderTextColor="#c4a87b" secureTextEntry style={styles.input} />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        placeholderTextColor="#aaa"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          <TouchableOpacity style={styles.button} onPress={handleSignIn}>
+            <Text style={styles.buttonText}>Sign In</Text>
+          </TouchableOpacity>
 
-      <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-        <Text style={styles.loginButtonText}>Log In</Text>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.socialButton}>
+            <FontAwesome name="facebook" size={20} color="#fff" style={styles.icon} />
+            <Text style={styles.socialButtonText}>Continue with Facebook</Text>
+          </TouchableOpacity>
 
-      <Text style={styles.orText}>OR</Text>
+          <TouchableOpacity style={[styles.socialButton, { backgroundColor: '#db4437' }]}>
+            <FontAwesome name="google" size={20} color="#fff" style={styles.icon} />
+            <Text style={styles.socialButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
 
-      <View style={styles.socialButtonsContainer}>
-        <TouchableOpacity
-          style={[styles.socialButton, { backgroundColor: '#3b5998' }]}
-          onPress={handleFacebookLogin}
-        >
-          <Image
-            source={{
-              uri: 'https://cdn-icons-png.flaticon.com/512/733/733547.png',
-            }}
-            style={styles.socialIcon}
-          />
-          <Text style={styles.socialButtonText}>Facebook</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.socialButton, { backgroundColor: '#db4437' }]}
-          onPress={handleGoogleLogin}
-        >
-          <Image
-            source={{
-              uri: 'https://cdn-icons-png.flaticon.com/512/300/300221.png',
-            }}
-            style={styles.socialIcon}
-          />
-          <Text style={styles.socialButtonText}>Google</Text>
-        </TouchableOpacity>
+          <TouchableOpacity>
+            <Text style={styles.linkText}>Don’t have an account?</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: 'cover',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    backgroundColor: '#000'
+  },
+  containerWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 350 // yukarı alındı, çenenin altına
+  },
   container: {
-    flex:1,
-    justifyContent:'center',
-    paddingHorizontal:30,
-    backgroundColor:'#121212',
+    width: '85%',
+    padding: 20,
+    backgroundColor: 'rgba(77, 51, 25, 0.85)',
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: '#a97c50',
+    alignItems: 'center'
   },
   title: {
-    fontSize:32,
-    fontWeight:'bold',
-    color:'#f0e6c8',
-    marginBottom:40,
-    alignSelf:'center',
+    fontSize: 36,
+    color: '#e0c38c',
+    fontWeight: 'bold',
+    marginBottom: 30
   },
   input: {
-    height:50,
-    backgroundColor:'#222',
-    borderRadius:10,
-    paddingHorizontal:15,
-    color:'#fff',
-    marginBottom:20,
-    fontSize:16,
+    width: '100%',
+    padding: 12,
+    marginBottom: 20,
+    backgroundColor: '#2c1a0f',
+    borderColor: '#a97c50',
+    borderWidth: 2,
+    borderRadius: 8,
+    color: '#fff',
+    fontSize: 16
   },
-  loginButton: {
-    backgroundColor:'#8b6f2f',
-    paddingVertical:15,
-    borderRadius:25,
-    alignItems:'center',
-    marginTop:10,
+  button: {
+    backgroundColor: '#4a2e13',
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderColor: '#c9a367',
+    borderWidth: 2
   },
-  loginButtonText: {
-    color:'#f0e6c8',
-    fontSize:18,
-    fontWeight:'600',
-  },
-  orText: {
-    textAlign:'center',
-    color:'#888',
-    marginVertical:15,
-    fontSize:16,
-  },
-  socialButtonsContainer: {
-    flexDirection:'row',
-    justifyContent:'space-around',
+  buttonText: {
+    color: '#f5e1b3',
+    fontSize: 18,
+    fontWeight: 'bold'
   },
   socialButton: {
-    flexDirection:'row',
-    alignItems:'center',
-    paddingVertical:10,
-    paddingHorizontal:20,
-    borderRadius:25,
-  },
-  socialIcon: {
-    width:24,
-    height:24,
-    marginRight:10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#3b5998',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginBottom: 12,
+    width: '100%',
+    justifyContent: 'center'
   },
   socialButtonText: {
-    color:'#fff',
-    fontWeight:'600',
-    fontSize:16,
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600'
   },
+  icon: {
+    marginRight: 10
+  },
+  linkText: {
+    color: '#e0c38c',
+    fontSize: 16,
+    textDecorationLine: 'underline'
+  }
 });

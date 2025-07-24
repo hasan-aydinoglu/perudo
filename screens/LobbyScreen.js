@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 export default function LobbyScreen({ navigation, route }) {
-  const { playerName } = route.params;
+  const playerName = route?.params?.playerName || 'Guest';
 
   const handleStartGame = () => {
     navigation.navigate('Game', { playerName });
