@@ -34,9 +34,12 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.socialButtonText}>Continue with Google</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity>
-            <Text style={styles.linkText}>Don’t have an account?</Text>
-          </TouchableOpacity>
+          
+
+          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+  <Text style={styles.linkText}>Don’t have an account?</Text>
+</TouchableOpacity>
+
         </View>
       </View>
     </ImageBackground>

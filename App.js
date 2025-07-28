@@ -7,7 +7,8 @@ import HomeScreen from './screens/HomeScreen';
 import LobbyScreen from './screens/LobbyScreen';
 import GameScreen from './screens/GameScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import SettingsScreen from './screens/SettingsScreen'; // Eğer ayarlar sayfası da varsa
+import SettingsScreen from './screens/SettingsScreen';
+import SignupScreen from './screens/SignupScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ export default function App() {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Signup" component={SignupScreen} />
         <Stack.Screen name="Home" component={HomeScreen} />
         <Stack.Screen name="Lobby" component={LobbyScreen} />
         <Stack.Screen name="Game" component={GameScreen} />
