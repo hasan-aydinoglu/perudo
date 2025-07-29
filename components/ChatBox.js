@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, TextInput, Button, FlatList, Text, StyleSheet } from 'react-native';
 
-export default function ChatBox({ messages, onSend }) {
+export default function ChatBox({ messages, onSend, currentPlayerId }) {
   const [text, setText] = React.useState('');
 
   const handleSend = () => {
     if (text.trim()) {
-      onSend(text);
+      onSend({ senderId: currentPlayerId, text });
       setText('');
     }
   };
@@ -15,7 +15,12 @@ export default function ChatBox({ messages, onSend }) {
     <View style={styles.container}>
       <FlatList
         data={messages}
-        renderItem={({ item }) => <Text style={styles.message}>{item}</Text>}
+        renderItem={({ item }) => (
+          <Text style={styles.message}>
+            <Text style={{ fontWeight: 'bold' }}>{`Player ${item.senderId}: `}</Text>
+            {item.text}
+          </Text>
+        )}
         keyExtractor={(_, index) => index.toString()}
       />
       <TextInput
