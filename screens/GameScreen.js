@@ -1,4 +1,4 @@
-// GameScreen.js - Chat baloncuğu entegre edilmiş hali
+// GameScreen.js - Kazanan belirleme + alt menü görünürlüğü + Bid/Liar butonları
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Image, ImageBackground,
@@ -43,6 +43,7 @@ export default function GameScreen({ navigation }) {
   const [bidModalVisible, setBidModalVisible] = useState(false);
   const [bidQuantity, setBidQuantity] = useState('');
   const [bidFace, setBidFace] = useState('');
+  const [winner, setWinner] = useState(null);
 
   const handleSendMessage = ({ senderId, text }) => {
     setMessages(prev => [...prev, { senderId, text }]);
@@ -68,6 +69,13 @@ export default function GameScreen({ navigation }) {
     }
   };
 
+  const checkWinner = (updatedPlayers) => {
+    const alivePlayers = updatedPlayers.filter(p => !p.isEliminated);
+    if (alivePlayers.length === 1) {
+      setWinner(alivePlayers[0]);
+    }
+  };
+
   const rollDiceForCurrentPlayer = () => {
     const result = rollDice();
     const updatedPlayers = players.map(p =>
@@ -76,6 +84,7 @@ export default function GameScreen({ navigation }) {
         : p
     );
     setPlayers(updatedPlayers);
+    checkWinner(updatedPlayers);
     setDiceData(prev => ({ ...prev, [currentPlayerId]: result }));
     Alert.alert('Dice Rolled', `You rolled: ${result.join(', ')}`);
   };
@@ -118,6 +127,7 @@ export default function GameScreen({ navigation }) {
     }
 
     setPlayers(updatedPlayers);
+    checkWinner(updatedPlayers);
     setCurrentBid(null);
     nextPlayer();
 
@@ -174,10 +184,20 @@ export default function GameScreen({ navigation }) {
       <View style={styles.table}>
         <Image source={require('../assets/dice/dice-cup.png')} style={styles.cup} />
 
-        {currentPlayerId === players[0].id && !players[0].isEliminated && (
+        {winner && (
+          <View style={styles.winnerBox}>
+            <Text style={styles.winnerText}>🏆 Winner: {winner.name} 🏆</Text>
+          </View>
+        )}
+
+        {currentPlayerId === players[0].id && !players[0].isEliminated && !winner && (
           <>
-            <TouchableOpacity style={styles.bgBidArea} onPress={() => setBidModalVisible(true)} />
-            <TouchableOpacity style={styles.bgLiarArea} onPress={callLiar} />
+            <TouchableOpacity style={styles.bidButton} onPress={() => setBidModalVisible(true)}>
+              <Text style={styles.buttonText}>🎲 Bid</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.liarButton} onPress={callLiar}>
+              <Text style={styles.buttonText}>❌ Liar</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.rollDiceButton} onPress={rollDiceForCurrentPlayer}>
               <Text style={styles.rollDiceText}>Roll Dice</Text>
             </TouchableOpacity>
@@ -214,7 +234,11 @@ export default function GameScreen({ navigation }) {
         )}
       </View>
 
-      {/* ...Modal ve alt menü kodları aynı kalıyor... */}
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Profile')}><Text style={styles.navText}>👤</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Game')}><Text style={styles.navText}>🎮</Text></TouchableOpacity>
+        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Settings')}><Text style={styles.navText}>⚙️</Text></TouchableOpacity>
+      </View>
     </ImageBackground>
   );
 }
@@ -245,4 +269,67 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 1, height: 1 }
   },
   messageText: { color: '#000', fontSize: 12, fontWeight: '600' },
+  winnerBox: {
+    position: 'absolute',
+    top: '45%',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    padding: 20,
+    borderRadius: 10,
+    zIndex: 999
+  },
+  winnerText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000',
+    textAlign: 'center'
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    paddingVertical: 10,
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    zIndex: 999
+  },
+  navButton: { padding: 10 },
+  navText: { fontSize: 20, color: '#fff' },
+  bidButton: {
+    position: 'absolute',
+    bottom: -40,
+    left: 20,
+    backgroundColor: 'green',
+    padding: 10,
+    borderRadius: 10,
+    zIndex: 10
+  },
+  liarButton: {
+    position: 'absolute',
+    bottom: -40,
+    right: 20,
+    backgroundColor: 'red',
+    padding: 10,
+    borderRadius: 10,
+    zIndex: 10
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold'
+  },
+  rollDiceButton: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: '#ffd700',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    zIndex: 10
+  },
+  rollDiceText: {
+    fontWeight: 'bold',
+    color: '#000'
+  }
 });
