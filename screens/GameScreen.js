@@ -1,4 +1,4 @@
-// GameScreen.js - Kazanan belirleme + alt menü görünürlüğü + Bid/Liar butonları
+// GameScreen.js - Kazanan belirleme + alt menü görünürlüğü
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Image, ImageBackground,
@@ -192,11 +192,11 @@ export default function GameScreen({ navigation }) {
 
         {currentPlayerId === players[0].id && !players[0].isEliminated && !winner && (
           <>
-            <TouchableOpacity style={styles.bidButton} onPress={() => setBidModalVisible(true)}>
-              <Text style={styles.buttonText}>🎲 Bid</Text>
+            <TouchableOpacity style={styles.bgBidArea} onPress={() => setBidModalVisible(true)}>
+              <Text style={styles.actionText}>🎲 Bid</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.liarButton} onPress={callLiar}>
-              <Text style={styles.buttonText}>❌ Liar</Text>
+            <TouchableOpacity style={styles.bgLiarArea} onPress={callLiar}>
+              <Text style={styles.actionText}>❌ Liar</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.rollDiceButton} onPress={rollDiceForCurrentPlayer}>
               <Text style={styles.rollDiceText}>Roll Dice</Text>
@@ -209,10 +209,7 @@ export default function GameScreen({ navigation }) {
             <TouchableOpacity onPress={() => pickAvatar(player.id)}>
               <Image
                 source={{ uri: player.avatar }}
-                style={[
-                  styles.avatar,
-                  player.isEliminated && { tintColor: 'gray', opacity: 0.5 }
-                ]}
+                style={[styles.avatar, player.isEliminated && { tintColor: 'gray', opacity: 0.5 }]}
               />
             </TouchableOpacity>
             <Text style={styles.name}>{player.name}</Text>
@@ -227,9 +224,7 @@ export default function GameScreen({ navigation }) {
 
         {currentBid && (
           <View style={styles.bidBox}>
-            <Text style={styles.bidText}>
-              Bid: {currentBid.quantity} of {currentBid.face}
-            </Text>
+            <Text style={styles.bidText}>Bid: {currentBid.quantity} of {currentBid.face}</Text>
           </View>
         )}
       </View>
@@ -296,40 +291,43 @@ const styles = StyleSheet.create({
   },
   navButton: { padding: 10 },
   navText: { fontSize: 20, color: '#fff' },
-  bidButton: {
+  bgBidArea: {
     position: 'absolute',
-    bottom: -40,
-    left: 20,
-    backgroundColor: 'green',
-    padding: 10,
-    borderRadius: 10,
+    bottom: 60,
+    left: '8%',
+    width: 90,
+    height: 45,
+    backgroundColor: 'rgba(0,255,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
     zIndex: 10
   },
-  liarButton: {
+  bgLiarArea: {
     position: 'absolute',
-    bottom: -40,
-    right: 20,
-    backgroundColor: 'red',
-    padding: 10,
-    borderRadius: 10,
+    bottom: 60,
+    right: '8%',
+    width: 90,
+    height: 45,
+    backgroundColor: 'rgba(255,0,0,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
     zIndex: 10
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold'
   },
   rollDiceButton: {
     position: 'absolute',
-    bottom: 20,
-    alignSelf: 'center',
+    bottom: 60,
+    left: '50%',
+    transform: [{ translateX: -45 }],
+    width: 90,
+    height: 45,
     backgroundColor: '#ffd700',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
     zIndex: 10
   },
-  rollDiceText: {
-    fontWeight: 'bold',
-    color: '#000'
-  }
+  rollDiceText: { fontWeight: 'bold', color: '#000' },
+  actionText: { fontWeight: 'bold', color: '#fff' }
 });
