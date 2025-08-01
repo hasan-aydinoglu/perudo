@@ -1,11 +1,12 @@
-// GameScreen.js - Kazanan belirleme + alt menü görünürlüğü
-import React, { useState } from 'react';
+// GameScreen.js - Geliştirildi: Ses efektleri, sıra kontrolü, kazanma animasyonu + bid modalı ve liar butonu işlevsel + avatarlar, zarlar, sohbet balonu ve alt menü
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Image, ImageBackground,
-  TouchableOpacity, Alert, Modal, TextInput, Pressable
+  TouchableOpacity, Alert, Modal, TextInput, Pressable, Animated
 } from 'react-native';
 import ChatBox from '../components/ChatBox';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 
 const defaultAvatars = [
   'https://i.pravatar.cc/100?img=1',
@@ -44,25 +45,56 @@ export default function GameScreen({ navigation }) {
   const [bidQuantity, setBidQuantity] = useState('');
   const [bidFace, setBidFace] = useState('');
   const [winner, setWinner] = useState(null);
+  const animation = useRef(new Animated.Value(0)).current;
+
+  const avatarPositions = [
+    { top: 30, left: '43%' },
+    { top: '33%', right: 20 },
+    { bottom: 150, right: 30 },
+    { top: '33%', left: 20 },
+  ];
+
+  const playSound = async (type) => {
+    try {
+      const soundMap = {
+        roll: require('../assets/sfx/roll.mp3'),
+        bid: require('../assets/sfx/bid.mp3'),
+        liar: require('../assets/sfx/liar.mp3'),
+        win: require('../assets/sfx/win.mp3'),
+      };
+      const { sound } = await Audio.Sound.createAsync(soundMap[type]);
+      await sound.playAsync();
+    } catch (error) {
+      console.log('Sound error:', error);
+    }
+  };
+
+  const animateWin = () => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animation, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(animation, { toValue: 0, duration: 500, useNativeDriver: true })
+      ])
+    ).start();
+  };
+
+  useEffect(() => {
+    if (winner) {
+      playSound('win');
+      animateWin();
+    }
+  }, [winner]);
 
   const handleSendMessage = ({ senderId, text }) => {
     setMessages(prev => [...prev, { senderId, text }]);
-    setPlayers(prevPlayers => prevPlayers.map(p =>
-      p.id === senderId ? { ...p, lastMessage: text } : p
-    ));
+    setPlayers(prevPlayers => prevPlayers.map(p => p.id === senderId ? { ...p, lastMessage: text } : p));
     setTimeout(() => {
-      setPlayers(prevPlayers => prevPlayers.map(p =>
-        p.id === senderId ? { ...p, lastMessage: '' } : p
-      ));
+      setPlayers(prevPlayers => prevPlayers.map(p => p.id === senderId ? { ...p, lastMessage: '' } : p));
     }, 3000);
   };
 
   const pickAvatar = async (playerId) => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1
-    });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, quality: 1 });
     if (!result.canceled) {
       const updated = players.map(p => p.id === playerId ? { ...p, avatar: result.assets[0].uri } : p);
       setPlayers(updated);
@@ -71,18 +103,14 @@ export default function GameScreen({ navigation }) {
 
   const checkWinner = (updatedPlayers) => {
     const alivePlayers = updatedPlayers.filter(p => !p.isEliminated);
-    if (alivePlayers.length === 1) {
-      setWinner(alivePlayers[0]);
-    }
+    if (alivePlayers.length === 1) setWinner(alivePlayers[0]);
   };
 
   const rollDiceForCurrentPlayer = () => {
+    if (winner || currentPlayerId !== players[0].id) return;
+    playSound('roll');
     const result = rollDice();
-    const updatedPlayers = players.map(p =>
-      p.id === currentPlayerId
-        ? { ...p, dice: result, isEliminated: result.length === 0 }
-        : p
-    );
+    const updatedPlayers = players.map(p => p.id === currentPlayerId ? { ...p, dice: result, isEliminated: result.length === 0 } : p);
     setPlayers(updatedPlayers);
     checkWinner(updatedPlayers);
     setDiceData(prev => ({ ...prev, [currentPlayerId]: result }));
@@ -90,6 +118,8 @@ export default function GameScreen({ navigation }) {
   };
 
   const submitBid = () => {
+    if (winner || currentPlayerId !== players[0].id) return;
+    playSound('bid');
     const quantity = parseInt(bidQuantity);
     const face = parseInt(bidFace);
     if (!isNaN(quantity) && !isNaN(face) && face >= 1 && face <= 6) {
@@ -104,39 +134,24 @@ export default function GameScreen({ navigation }) {
   };
 
   const callLiar = () => {
-    if (!currentBid) return;
+    if (!currentBid || winner || currentPlayerId !== players[0].id) return;
+    playSound('liar');
     const total = Object.values(diceData).flat().filter(d => d === currentBid.face).length;
     const bidder = players.find(p => p.id === currentBid.playerId);
     const caller = players.find(p => p.id === currentPlayerId);
-
     const wasLie = total < currentBid.quantity;
+
     let updatedPlayers = [...players];
-
     if (wasLie) {
-      updatedPlayers = updatedPlayers.map(p =>
-        p.id === bidder.id
-          ? { ...p, dice: p.dice.slice(0, -1), isEliminated: p.dice.length - 1 === 0 }
-          : p
-      );
+      updatedPlayers = updatedPlayers.map(p => p.id === bidder.id ? { ...p, dice: p.dice.slice(0, -1), isEliminated: p.dice.length - 1 === 0 } : p);
     } else {
-      updatedPlayers = updatedPlayers.map(p =>
-        p.id === caller.id
-          ? { ...p, dice: p.dice.slice(0, -1), isEliminated: p.dice.length - 1 === 0 }
-          : p
-      );
+      updatedPlayers = updatedPlayers.map(p => p.id === caller.id ? { ...p, dice: p.dice.slice(0, -1), isEliminated: p.dice.length - 1 === 0 } : p);
     }
-
     setPlayers(updatedPlayers);
     checkWinner(updatedPlayers);
     setCurrentBid(null);
     nextPlayer();
-
-    Alert.alert(
-      'Liar Called!',
-      wasLie
-        ? `${caller.name} was right! ${bidder.name}'s bid was a lie.`
-        : `${caller.name} was wrong! ${bidder.name}'s bid is valid.`
-    );
+    Alert.alert('Liar Called!', wasLie ? `${caller.name} was right! ${bidder.name}'s bid was a lie.` : `${caller.name} was wrong! ${bidder.name}'s bid is valid.`);
   };
 
   const nextPlayer = () => {
@@ -150,27 +165,19 @@ export default function GameScreen({ navigation }) {
 
   const renderDice = (playerId) => {
     const player = players.find(p => p.id === playerId);
-    const dice = player?.dice || [];
     return (
-      <View style={styles.diceRow}>
-        {dice.map((d, i) => (
-          <Image key={i} source={getDiceImage(d)} style={styles.diceImage} />
+      <View style={{ flexDirection: 'row', marginTop: 5 }}>
+        {player.dice.map((d, i) => (
+          <Image key={i} source={getDiceImage(d)} style={{ width: 32, height: 32, margin: 2 }} />
         ))}
       </View>
     );
   };
 
-  const avatarPositions = [
-    { top: 30, left: '43%' },
-    { top: '33%', right: 20 },
-    { bottom: 150, right: 30 },
-    { top: '33%', left: 20 },
-  ];
-
   return (
-    <ImageBackground source={require('../assets/dice/bg_map.png')} style={styles.background}>
-      <TouchableOpacity style={styles.chatButton} onPress={() => setShowChat(!showChat)}>
-        <Text style={styles.chatText}>💬</Text>
+    <ImageBackground source={require('../assets/dice/bg_map.png')} style={{ flex: 1 }}>
+      <TouchableOpacity onPress={() => setShowChat(!showChat)} style={{ position: 'absolute', top: 40, right: 20, zIndex: 999 }}>
+        <Text style={{ fontSize: 24, color: '#fff' }}>💬</Text>
       </TouchableOpacity>
 
       {showChat && (
@@ -181,153 +188,51 @@ export default function GameScreen({ navigation }) {
         />
       )}
 
-      <View style={styles.table}>
-        <Image source={require('../assets/dice/dice-cup.png')} style={styles.cup} />
+      {players.map((player, i) => (
+        <View key={player.id} style={[{ position: 'absolute', alignItems: 'center' }, avatarPositions[i]]}>
+          <TouchableOpacity onPress={() => pickAvatar(player.id)}>
+            <Image source={{ uri: player.avatar }} style={{ width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#ffcc00', opacity: player.isEliminated ? 0.5 : 1 }} />
+          </TouchableOpacity>
+          <Text style={{ color: '#fff', marginTop: 4, fontWeight: 'bold' }}>{player.name}</Text>
+          {player.lastMessage !== '' && (
+            <View style={{ backgroundColor: '#fff', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, position: 'absolute', top: -25 }}>
+              <Text style={{ color: '#000', fontSize: 12, fontWeight: '600' }}>{player.lastMessage}</Text>
+            </View>
+          )}
+          {currentPlayerId === player.id && !player.isEliminated && renderDice(player.id)}
+        </View>
+      ))}
 
-        {winner && (
-          <View style={styles.winnerBox}>
-            <Text style={styles.winnerText}>🏆 Winner: {winner.name} 🏆</Text>
+      <TouchableOpacity onPress={() => setBidModalVisible(true)} style={{ position: 'absolute', bottom: 130, left: 20, backgroundColor: 'green', padding: 10, borderRadius: 10 }}>
+        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Bid</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={callLiar} style={{ position: 'absolute', bottom: 130, right: 20, backgroundColor: 'red', padding: 10, borderRadius: 10 }}>
+        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Liar</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={rollDiceForCurrentPlayer} style={{ position: 'absolute', bottom: 130, left: '50%', transform: [{ translateX: -45 }], backgroundColor: '#ffd700', padding: 10, borderRadius: 10 }}>
+        <Text style={{ fontWeight: 'bold', color: '#000' }}>Roll Dice</Text>
+      </TouchableOpacity>
+
+      <Modal transparent visible={bidModalVisible} animationType="slide">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000000aa' }}>
+          <View style={{ backgroundColor: '#fff', padding: 20, borderRadius: 10, width: 300 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, marginBottom: 10 }}>Enter Your Bid</Text>
+            <TextInput placeholder="Quantity" keyboardType="number-pad" value={bidQuantity} onChangeText={setBidQuantity} style={{ borderWidth: 1, marginBottom: 10, padding: 8 }} />
+            <TextInput placeholder="Face (1-6)" keyboardType="number-pad" value={bidFace} onChangeText={setBidFace} style={{ borderWidth: 1, marginBottom: 10, padding: 8 }} />
+            <Pressable onPress={submitBid} style={{ backgroundColor: '#0a3d62', padding: 10, borderRadius: 8 }}>
+              <Text style={{ color: '#fff', textAlign: 'center' }}>Submit</Text>
+            </Pressable>
           </View>
-        )}
+        </View>
+      </Modal>
 
-        {currentPlayerId === players[0].id && !players[0].isEliminated && !winner && (
-          <>
-            <TouchableOpacity style={styles.bgBidArea} onPress={() => setBidModalVisible(true)}>
-              <Text style={styles.actionText}>🎲 Bid</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.bgLiarArea} onPress={callLiar}>
-              <Text style={styles.actionText}>❌ Liar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.rollDiceButton} onPress={rollDiceForCurrentPlayer}>
-              <Text style={styles.rollDiceText}>Roll Dice</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {players.map((player, i) => (
-          <View key={player.id} style={[styles.playerContainer, avatarPositions[i]]}>
-            <TouchableOpacity onPress={() => pickAvatar(player.id)}>
-              <Image
-                source={{ uri: player.avatar }}
-                style={[styles.avatar, player.isEliminated && { tintColor: 'gray', opacity: 0.5 }]}
-              />
-            </TouchableOpacity>
-            <Text style={styles.name}>{player.name}</Text>
-            {player.lastMessage !== '' && (
-              <View style={styles.messageBubble}>
-                <Text style={styles.messageText}>{player.lastMessage}</Text>
-              </View>
-            )}
-            {currentPlayerId === player.id && !player.isEliminated && renderDice(player.id)}
-          </View>
-        ))}
-
-        {currentBid && (
-          <View style={styles.bidBox}>
-            <Text style={styles.bidText}>Bid: {currentBid.quantity} of {currentBid.face}</Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Profile')}><Text style={styles.navText}>👤</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Game')}><Text style={styles.navText}>🎮</Text></TouchableOpacity>
-        <TouchableOpacity style={styles.navButton} onPress={() => navigation.navigate('Settings')}><Text style={styles.navText}>⚙️</Text></TouchableOpacity>
+      <View style={{ position: 'absolute', bottom: 0, width: '100%', backgroundColor: '#222', flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 10 }}>
+        <TouchableOpacity onPress={() => navigation.navigate('Profile')}><Text style={{ color: '#fff', fontSize: 20 }}>👤</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Game')}><Text style={{ color: '#fff', fontSize: 20 }}>🎮</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Settings')}><Text style={{ color: '#fff', fontSize: 20 }}>⚙️</Text></TouchableOpacity>
       </View>
     </ImageBackground>
   );
 }
-
-const styles = StyleSheet.create({
-  background: { flex: 1, resizeMode: 'cover', justifyContent: 'center' },
-  table: { width: '100%', height: '70%', justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  playerContainer: { position: 'absolute', alignItems: 'center' },
-  avatar: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#ffcc00' },
-  name: { color: '#fff', marginTop: 4, fontWeight: 'bold' },
-  diceRow: { flexDirection: 'row', marginTop: 5 },
-  diceImage: { width: 32, height: 32, margin: 2 },
-  cup: { width: 60, height: 60, position: 'absolute', top: '45%', zIndex: 1 },
-  bidBox: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.8)', padding: 8, borderRadius: 10, top: '48%' },
-  bidText: { fontSize: 16, fontWeight: 'bold' },
-  chatButton: { position: 'absolute', top: 40, right: 20, zIndex: 999 },
-  chatText: { fontSize: 24, color: '#fff' },
-  messageBubble: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    position: 'absolute',
-    top: -25,
-    zIndex: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 1, height: 1 }
-  },
-  messageText: { color: '#000', fontSize: 12, fontWeight: '600' },
-  winnerBox: {
-    position: 'absolute',
-    top: '45%',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    padding: 20,
-    borderRadius: 10,
-    zIndex: 999
-  },
-  winnerText: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000',
-    textAlign: 'center'
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#222',
-    paddingVertical: 10,
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    zIndex: 999
-  },
-  navButton: { padding: 10 },
-  navText: { fontSize: 20, color: '#fff' },
-  bgBidArea: {
-    position: 'absolute',
-    bottom: 60,
-    left: '8%',
-    width: 90,
-    height: 45,
-    backgroundColor: 'rgba(0,255,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    zIndex: 10
-  },
-  bgLiarArea: {
-    position: 'absolute',
-    bottom: 60,
-    right: '8%',
-    width: 90,
-    height: 45,
-    backgroundColor: 'rgba(255,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    zIndex: 10
-  },
-  rollDiceButton: {
-    position: 'absolute',
-    bottom: 60,
-    left: '50%',
-    transform: [{ translateX: -45 }],
-    width: 90,
-    height: 45,
-    backgroundColor: '#ffd700',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-    zIndex: 10
-  },
-  rollDiceText: { fontWeight: 'bold', color: '#000' },
-  actionText: { fontWeight: 'bold', color: '#fff' }
-});
