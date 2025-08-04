@@ -1,4 +1,4 @@
-// GameScreen.js - Geliştirildi: Ses efektleri, sıra kontrolü, kazanma animasyonu + bid modalı ve liar butonu işlevsel + avatarlar, zarlar, sohbet balonu ve alt menü
+// GameScreen.js - Oyuncu sırası göstergesi eklendi + chat balonları + alt menü + zar atma + bid/liar işlevsel
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Image, ImageBackground,
@@ -37,7 +37,7 @@ export default function GameScreen({ navigation }) {
   ]);
 
   const [diceData, setDiceData] = useState({});
-  const [currentPlayerId, setCurrentPlayerId] = useState(players[0].id);
+  const [currentPlayerId, setCurrentPlayerId] = useState(1);
   const [currentBid, setCurrentBid] = useState(null);
   const [showChat, setShowChat] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -174,8 +174,16 @@ export default function GameScreen({ navigation }) {
     );
   };
 
+  const currentPlayer = players.find(p => p.id === currentPlayerId);
+
   return (
     <ImageBackground source={require('../assets/dice/bg_map.png')} style={{ flex: 1 }}>
+      {winner === null && (
+        <View style={{ position: 'absolute', top: 5, alignSelf: 'center', backgroundColor: '#000a', padding: 6, borderRadius: 8 }}>
+          <Text style={{ color: '#fff', fontWeight: 'bold' }}>🎯 Sıra: {currentPlayer?.name}</Text>
+        </View>
+      )}
+
       <TouchableOpacity onPress={() => setShowChat(!showChat)} style={{ position: 'absolute', top: 40, right: 20, zIndex: 999 }}>
         <Text style={{ fontSize: 24, color: '#fff' }}>💬</Text>
       </TouchableOpacity>
