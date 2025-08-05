@@ -1,13 +1,14 @@
-import React from 'react';
+// components/ChatBox.js
+import React, { useState } from 'react';
 import { View, TextInput, Button, FlatList, Text, StyleSheet } from 'react-native';
 
 export default function ChatBox({ messages, onSend, currentPlayerId }) {
-  const [text, setText] = React.useState('');
+  const [input, setInput] = useState('');
 
   const handleSend = () => {
-    if (text.trim()) {
-      onSend({ senderId: currentPlayerId, text });
-      setText('');
+    if (input.trim() !== '') {
+      onSend({ senderId: currentPlayerId, text: input.trim() });
+      setInput('');
     }
   };
 
@@ -15,44 +16,56 @@ export default function ChatBox({ messages, onSend, currentPlayerId }) {
     <View style={styles.container}>
       <FlatList
         data={messages}
+        keyExtractor={(_, index) => index.toString()}
         renderItem={({ item }) => (
           <Text style={styles.message}>
-            <Text style={{ fontWeight: 'bold' }}>{`Player ${item.senderId}: `}</Text>
-            {item.text}
+            Player {item.senderId}: {item.text}
           </Text>
         )}
-        keyExtractor={(_, index) => index.toString()}
+        style={styles.messageList}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Type your message..."
-        value={text}
-        onChangeText={setText}
-      />
-      <Button title="Send" onPress={handleSend} />
+      <View style={styles.inputRow}>
+        <TextInput
+          value={input}
+          onChangeText={setInput}
+          placeholder="Type message..."
+          style={styles.input}
+        />
+        <Button title="Send" onPress={handleSend} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#222',
-    padding: 10,
-    borderRadius: 10,
     position: 'absolute',
-    bottom: 80,
-    left: 10,
-    right: 10,
-    maxHeight: 300,
-  },
-  input: {
+    bottom: 70,
+    left: 20,
+    right: 20,
     backgroundColor: '#fff',
+    borderRadius: 10,
     padding: 10,
-    borderRadius: 5,
-    marginVertical: 5,
+    zIndex: 999,
+  },
+  messageList: {
+    maxHeight: 100,
+    marginBottom: 10,
   },
   message: {
-    color: '#fff',
-    marginVertical: 2,
+    paddingVertical: 2,
+    color: '#333',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#999',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    marginRight: 10,
   },
 });
