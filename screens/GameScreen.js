@@ -1,4 +1,3 @@
-// GameScreen.js - Oyuncu sırası göstergesi eklendi + chat balonları + alt menü + zar atma + bid/liar işlevsel
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, Image, ImageBackground,
@@ -30,10 +29,10 @@ const getDiceImage = (value) => diceImages[value];
 
 export default function GameScreen({ navigation }) {
   const [players, setPlayers] = useState([
-    { id: 1, name: 'Alice', avatar: defaultAvatars[0], dice: rollDice(), isEliminated: false, lastMessage: '' },
-    { id: 2, name: 'Bob', avatar: defaultAvatars[1], dice: rollDice(), isEliminated: false, lastMessage: '' },
-    { id: 3, name: 'Charlie', avatar: defaultAvatars[2], dice: rollDice(), isEliminated: false, lastMessage: '' },
-    { id: 4, name: 'Diana', avatar: defaultAvatars[3], dice: rollDice(), isEliminated: false, lastMessage: '' },
+    { id: 1, name: 'Alice', avatar: defaultAvatars[0], dice: rollDice(), isEliminated: false, lastMessage: '', isBot: false },
+    { id: 2, name: 'BotJack', avatar: defaultAvatars[1], dice: rollDice(), isEliminated: false, lastMessage: '', isBot: true },
+    { id: 3, name: 'Charlie', avatar: defaultAvatars[2], dice: rollDice(), isEliminated: false, lastMessage: '', isBot: false },
+    { id: 4, name: 'Diana', avatar: defaultAvatars[3], dice: rollDice(), isEliminated: false, lastMessage: '', isBot: false },
   ]);
 
   const [diceData, setDiceData] = useState({});
@@ -154,14 +153,25 @@ export default function GameScreen({ navigation }) {
     Alert.alert('Liar Called!', wasLie ? `${caller.name} was right! ${bidder.name}'s bid was a lie.` : `${caller.name} was wrong! ${bidder.name}'s bid is valid.`);
   };
 
-  const nextPlayer = () => {
-    const total = players.length;
-    let nextIndex = players.findIndex(p => p.id === currentPlayerId);
-    do {
-      nextIndex = (nextIndex + 1) % total;
-    } while (players[nextIndex].isEliminated && players.some(p => !p.isEliminated));
-    setCurrentPlayerId(players[nextIndex].id);
-  };
+  useEffect(() => {
+    const current = players.find(p => p.id === currentPlayerId);
+    if (current?.isBot && !winner) {
+      setTimeout(() => {
+        const action = Math.random() > 0.5 ? 'bid' : 'liar';
+        if (action === 'liar' && currentBid) {
+          callLiar();
+        } else {
+          const randomBid = {
+            quantity: Math.floor(Math.random() * 5) + 1,
+            face: Math.floor(Math.random() * 6) + 1,
+          };
+          setCurrentBid({ ...randomBid, playerId: current.id });
+          playSound('bid');
+          nextPlayer();
+        }
+      }, 1500);
+    }
+  }, [currentPlayerId]);
 
   const renderDice = (playerId) => {
     const player = players.find(p => p.id === playerId);
@@ -176,9 +186,18 @@ export default function GameScreen({ navigation }) {
 
   const currentPlayer = players.find(p => p.id === currentPlayerId);
 
+  const resetGame = () => {
+    setPlayers(prev => prev.map((p, i) => ({ ...p, dice: rollDice(), isEliminated: false })));
+    setCurrentPlayerId(1);
+    setCurrentBid(null);
+    setWinner(null);
+    setMessages([]);
+    setDiceData({});
+  };
+
   return (
     <ImageBackground source={require('../assets/dice/bg_map.png')} style={{ flex: 1 }}>
-      {winner === null && (
+      {!winner && (
         <View style={{ position: 'absolute', top: 5, alignSelf: 'center', backgroundColor: '#000a', padding: 6, borderRadius: 8 }}>
           <Text style={{ color: '#fff', fontWeight: 'bold' }}>🎯 Sıra: {currentPlayer?.name}</Text>
         </View>
@@ -241,6 +260,38 @@ export default function GameScreen({ navigation }) {
         <TouchableOpacity onPress={() => navigation.navigate('Game')}><Text style={{ color: '#fff', fontSize: 20 }}>🎮</Text></TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Settings')}><Text style={{ color: '#fff', fontSize: 20 }}>⚙️</Text></TouchableOpacity>
       </View>
+
+      {winner && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.85)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 9999,
+        }}>
+          <Animated.Text style={{
+            fontSize: 36,
+            fontWeight: 'bold',
+            color: animation.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['gold', 'white']
+            }),
+            transform: [{ scale: animation.interpolate({ inputRange: [0, 1], outputRange: [1, 1.2] }) }]
+          }}>
+            🏆 Winner: {winner.name} 🥳
+          </Animated.Text>
+
+          <TouchableOpacity
+            onPress={resetGame}
+            style={{ marginTop: 20, backgroundColor: '#28a745', padding: 12, borderRadius: 10 }}>
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>🔁 Play Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ImageBackground>
   );
 }
