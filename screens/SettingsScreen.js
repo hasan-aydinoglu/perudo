@@ -1,8 +1,8 @@
-// SettingsScreen.js - Gelişmiş Ayarlar Sayfası (Siyah Arka Planlı)
+// SettingsScreen.js - Gelişmiş Ayarlar Sayfası (Siyah Arka Plan)
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, Image, Switch,
-  TouchableOpacity, TextInput, ScrollView, Alert, ImageBackground
+  View, Text, StyleSheet, Switch,
+  TouchableOpacity, TextInput, ScrollView, Alert
 } from 'react-native';
 
 export default function SettingsScreen({ navigation }) {
@@ -20,65 +20,56 @@ export default function SettingsScreen({ navigation }) {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'black' }}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
 
-        <Text style={styles.header}>⚙️ Settings</Text>
+      <Text style={styles.header}>⚙️ Settings</Text>
 
-        {/* Kullanıcı Bilgileri */}
-        <View style={styles.section}>
-          <Text style={styles.label}>👤 Username</Text>
-          <TextInput style={styles.input} value={username} onChangeText={setUsername} />
+      <View style={styles.section}>
+        <Text style={styles.label}>👤 Username</Text>
+        <TextInput style={styles.input} value={username} onChangeText={setUsername} />
 
-          <Text style={styles.label}>📧 Email</Text>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} />
-        </View>
+        <Text style={styles.label}>📧 Email</Text>
+        <TextInput style={styles.input} value={email} onChangeText={setEmail} />
+      </View>
 
-        {/* Ses Ayarları */}
-        <View style={styles.section}>
-          <Text style={styles.label}>🔊 Game Sound</Text>
-          <Switch value={isSoundOn} onValueChange={setIsSoundOn} />
+      <View style={styles.section}>
+        <Text style={styles.label}>🔊 Game Sound</Text>
+        <Switch value={isSoundOn} onValueChange={setIsSoundOn} />
 
-          <Text style={styles.label}>🎵 Music</Text>
-          <Switch value={isMusicOn} onValueChange={setIsMusicOn} />
-        </View>
+        <Text style={styles.label}>🎵 Music</Text>
+        <Switch value={isMusicOn} onValueChange={setIsMusicOn} />
+      </View>
 
-        {/* Tema Seçimi */}
-        <View style={styles.section}>
-          <Text style={styles.label}>🎨 Theme</Text>
-          <Text style={styles.button} onPress={() => setSelectedTheme('Pirate')}>🏴‍☠️ Pirate</Text>
-          <Text style={styles.button} onPress={() => setSelectedTheme('Classic')}>🌊 Classic</Text>
-        </View>
+      <View style={styles.section}>
+        <Text style={styles.label}>🎨 Theme</Text>
+        <Text style={styles.button} onPress={() => setSelectedTheme('Pirate')}>🏴‍☠️ Pirate</Text>
+        <Text style={styles.button} onPress={() => setSelectedTheme('Classic')}>🌊 Classic</Text>
+      </View>
 
-        {/* Koyu Mod */}
-        <View style={styles.section}>
-          <Text style={styles.label}>🌙 Dark Mode</Text>
-          <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
-        </View>
+      <View style={styles.section}>
+        <Text style={styles.label}>🌙 Dark Mode</Text>
+        <Switch value={isDarkMode} onValueChange={setIsDarkMode} />
+      </View>
 
-        {/* Dil Seçimi */}
-        <View style={styles.section}>
-          <Text style={styles.label}>🌐 Language</Text>
-          <Text style={styles.button} onPress={() => setSelectedLanguage('English')}>🇬🇧 English</Text>
-          <Text style={styles.button} onPress={() => setSelectedLanguage('Türkçe')}>🇹🇷 Türkçe</Text>
-        </View>
+      <View style={styles.section}>
+        <Text style={styles.label}>🌐 Language</Text>
+        <Text style={styles.button} onPress={() => setSelectedLanguage('English')}>🇬🇧 English</Text>
+        <Text style={styles.button} onPress={() => setSelectedLanguage('Türkçe')}>🇹🇷 Türkçe</Text>
+      </View>
 
-        {/* Hakkında & Destek */}
-        <View style={styles.section}>
-          <Text style={styles.label}>📱 App Version</Text>
-          <Text style={styles.info}>v1.0.0</Text>
+      <View style={styles.section}>
+        <Text style={styles.label}>📱 App Version</Text>
+        <Text style={styles.info}>v1.0.0</Text>
 
-          <Text style={styles.label}>📨 Contact</Text>
-          <Text style={styles.info}>support@perudoapp.com</Text>
-        </View>
+        <Text style={styles.label}>📨 Contact</Text>
+        <Text style={styles.info}>support@perudoapp.com</Text>
+      </View>
 
-        {/* Çıkış Butonu */}
-        <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Text style={styles.logoutText}>🚪 Log Out</Text>
-        </TouchableOpacity>
+      <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+        <Text style={styles.logoutText}>🚪 Log Out</Text>
+      </TouchableOpacity>
 
-      </ScrollView>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -86,6 +77,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 20,
     paddingBottom: 50,
+    backgroundColor: '#000',
   },
   header: {
     fontSize: 28,
@@ -93,17 +85,23 @@ const styles = StyleSheet.create({
     color: 'gold',
     alignSelf: 'center',
     marginVertical: 20,
+    textShadowColor: '#333',
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
   section: {
     marginBottom: 20,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(30,30,30,0.9)',
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'gold',
   },
   label: {
     color: '#fff',
     fontWeight: 'bold',
     marginBottom: 5,
+    fontSize: 16,
   },
   input: {
     backgroundColor: '#fff',
@@ -114,9 +112,10 @@ const styles = StyleSheet.create({
   button: {
     color: '#00ffff',
     paddingVertical: 5,
+    fontSize: 16,
   },
   info: {
-    color: '#fff',
+    color: '#ccc',
     marginBottom: 10,
   },
   logoutButton: {
@@ -125,9 +124,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#fff',
   },
   logoutText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
   },
 });
