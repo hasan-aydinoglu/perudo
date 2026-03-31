@@ -1,4 +1,3 @@
-// SettingsScreen.js - Gelişmiş Ayarlar Sayfası (Siyah Arka Plan)
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, Switch,

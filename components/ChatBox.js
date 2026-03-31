@@ -1,4 +1,3 @@
-// components/ChatBox.js
 import React, { useState } from 'react';
 import { View, TextInput, Button, FlatList, Text, StyleSheet } from 'react-native';
 

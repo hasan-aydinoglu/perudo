@@ -1,4 +1,3 @@
-// SignupScreen.js (Pirate-style Signup with background image)
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 
@@ -8,7 +7,7 @@ export default function SignupScreen({ navigation }) {
   const [password, setPassword] = useState('');
 
   const handleSignup = () => {
-    // Hesap oluşturma işlemleri
+    
     navigation.navigate('Lobby');
   };
 

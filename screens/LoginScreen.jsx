@@ -1,4 +1,3 @@
-// LoginScreen.js (Pirate-style Sign In with redirect to LobbyScreen)
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
